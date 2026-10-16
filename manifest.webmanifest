@@ -1,0 +1,11 @@
+{
+  "name": "S8 - Pruebas de Función Pulmonar",
+  "short_name": "S8 Pulmonar",
+  "description": "Calculadora offline de pruebas de función pulmonar.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "es"
+}

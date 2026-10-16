@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="S8 Pulmonar">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="format-detection" content="telephone=no">
+<title>S8 · Calculadora de Función Pulmonar</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --text:#17212b; --muted:#66717d; --line:#dce2e8;
+  --accent:#176b87; --accent2:#e9f5f8; --ok:#197447; --okbg:#eaf7f0;
+  --warn:#9a6500; --warnbg:#fff6df; --bad:#a53535; --badbg:#fff0f0;
+}
+*{box-sizing:border-box}
+body{margin:0;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+header{background:#fff;border-bottom:1px solid var(--line);padding:28px 20px}
+.header-inner,main{max-width:1050px;margin:auto}
+h1{margin:0 0 6px;font-size:clamp(24px,4vw,36px)}
+.subtitle{color:var(--muted);margin:0}
+main{padding:22px 16px 50px}
+nav{display:flex;gap:8px;overflow-x:auto;padding:2px 0 16px;position:sticky;top:0;background:var(--bg);z-index:5}
+nav button,.reset{border:1px solid var(--line);background:#fff;color:var(--text);padding:10px 13px;border-radius:10px;white-space:nowrap;cursor:pointer;font-weight:600}
+nav button:hover,.reset:hover{border-color:var(--accent)}
+.section{display:none}.section.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+.card h2{margin:0 0 6px;font-size:22px}
+.card h3{margin:0 0 14px;font-size:17px}
+.desc{color:var(--muted);margin:0 0 18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+label{font-size:13px;font-weight:700;color:#3f4a55;display:block;margin-bottom:6px}
+input,select{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid #cbd3da;border-radius:10px;background:#fff;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(23,107,135,.12)}
+.unit-wrap{position:relative}.unit-wrap input{padding-right:72px}.unit{position:absolute;right:11px;top:39px;color:var(--muted);font-size:13px}
+.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+.result{background:#f7f9fa;border:1px solid var(--line);border-radius:12px;padding:13px}
+.result .k{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.result .v{font-size:21px;font-weight:750;margin-top:4px;word-break:break-word}
+.result.altered{background:var(--badbg);border:2px solid var(--bad)}
+.result.altered .k,.result.altered .v{color:var(--bad)}
+.result.attention{background:var(--warnbg);border:2px solid var(--warn)}
+.result.attention .k,.result.attention .v{color:var(--warn)}
+.message{margin-top:12px;border-radius:10px;padding:11px 13px;font-weight:650}
+.ok{background:var(--okbg);color:var(--ok)}.warn{background:var(--warnbg);color:var(--warn)}.bad{background:var(--badbg);color:var(--bad)}.neutral{background:var(--accent2);color:#285b6c}
+.note{font-size:13px;color:var(--muted);margin-top:12px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:#f6f8fa;padding:9px 11px;border-radius:8px;margin-top:10px}
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 6px}
+footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-size:12px}
+@media(max-width:700px){.grid,.grid.three{grid-template-columns:1fr}.results{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:16px;border-radius:14px}.result{padding:11px}.result .v{font-size:18px}header{padding:22px 16px}main{padding:14px 12px 42px}nav{top:0;padding-top:8px;padding-bottom:10px;-webkit-overflow-scrolling:touch}nav button,.reset{min-height:44px}input,select{min-height:46px}}
+@media(max-width:390px){.results{grid-template-columns:1fr 1fr}.result .v{font-size:17px}}
+@media print{nav,.toolbar{display:none}.section{display:block!important}.card{break-inside:avoid}body{background:#fff}}
+</style>
+</head>
+<body>
+<header><div class="header-inner">
+<h1>S8 · Pruebas de Función Pulmonar</h1>
+<p class="subtitle">Calculadora offline para estudio y apoyo al razonamiento kinesiológico.</p>
+</div></header>
+
+<main>
+<nav id="tabs">
+<button data-tab="presiones">PImáx / PEmáx</button>
+<button data-tab="fem">FEM</button>
+<button data-tab="fmt">FMT</button>
+<button data-tab="imt">IMT</button>
+<button data-tab="tm6">TM6</button>
+<button data-tab="referencias">Referencias</button>
+</nav>
+<div class="toolbar"><button class="reset" id="reset">Limpiar todos los datos</button></div>
+
+<section id="presiones" class="section active">
+<div class="card">
+<h2>PImáx y PEmáx</h2>
+<p class="desc">Calcula valor teórico, LLN, porcentaje alcanzado y diferencia respecto del teórico según sexo y edad.</p>
+<div class="grid">
+<div><label for="sex">Sexo</label><select id="sex"><option value="">Seleccionar</option><option value="h">Hombre</option><option value="m">Mujer</option></select></div>
+<div class="unit-wrap"><label for="age">Edad</label><input id="age" type="number" min="0" max="120" step="1" placeholder="Ej. 68"><span class="unit">años</span></div>
+<div class="unit-wrap"><label for="pimax">PImáx obtenida</label><input id="pimax" type="number" step="0.1" placeholder="Ej. -70"><span class="unit">cmH₂O</span></div>
+<div class="unit-wrap"><label for="pemax">PEmáx obtenida</label><input id="pemax" type="number" step="0.1" placeholder="Ej. 110"><span class="unit">cmH₂O</span></div>
+</div>
+</div>
+
+<div class="card">
+<h3>PImáx</h3>
+<div class="results">
+<div class="result" id="piTheoCard"><div class="k">Teórico</div><div class="v" id="piTheo">—</div></div>
+<div class="result" id="piLlnCard"><div class="k">LLN</div><div class="v" id="piLln">—</div></div>
+<div class="result" id="piPctCard"><div class="k">% del teórico</div><div class="v" id="piPct">—</div></div>
+<div class="result"><div class="k">Déficit vs. teórico</div><div class="v" id="piDef">—</div></div>
+<div class="result" id="pi80Card"><div class="k">80% teórico</div><div class="v" id="pi80">—</div></div>
+</div>
+<div id="piMsg"></div>
+<p class="note">Para comparar fuerza se usa la magnitud absoluta de PImáx, ya que la medición inspiratoria se expresa como presión negativa.</p>
+</div>
+
+<div class="card">
+<h3>PEmáx</h3>
+<div class="results">
+<div class="result" id="peTheoCard"><div class="k">Teórico</div><div class="v" id="peTheo">—</div></div>
+<div class="result" id="peLlnCard"><div class="k">LLN</div><div class="v" id="peLln">—</div></div>
+<div class="result" id="pePctCard"><div class="k">% del teórico</div><div class="v" id="pePct">—</div></div>
+<div class="result"><div class="k">Déficit vs. teórico</div><div class="v" id="peDef">—</div></div>
+<div class="result" id="pe80Card"><div class="k">80% teórico</div><div class="v" id="pe80">—</div></div>
+</div>
+<div id="peMsg"></div>
+</div>
+</section>
+
+<section id="fem" class="section">
+<div class="card">
+<h2>Flujometría · FEM</h2>
+<p class="desc">Calcula el porcentaje alcanzado respecto del valor teórico ingresado. El apunte utiliza 400 L/min en sus casos de ejemplo.</p>
+<div class="grid">
+<div class="unit-wrap"><label for="femTheo">FEM teórico</label><input id="femTheo" type="number" min="1" step="1" value="400"><span class="unit">L/min</span></div>
+<div class="unit-wrap"><label for="femObs">FEM obtenido</label><input id="femObs" type="number" min="0" step="1" placeholder="Ej. 380"><span class="unit">L/min</span></div>
+</div>
+<div class="results">
+<div class="result" id="femPctCard"><div class="k">% teórico</div><div class="v" id="femPct">—</div></div>
+<div class="result" id="fem90Card"><div class="k">90% teórico</div><div class="v" id="fem90">—</div></div>
+</div>
+<div id="femMsg"></div>
+</div>
+</section>
+
+<section id="fmt" class="section">
+<div class="card">
+<h2>Flujo Máximo de la Tos · FMT</h2>
+<p class="desc">Clasificación basada en los puntos de referencia.</p>
+<div class="grid">
+<div class="unit-wrap"><label for="fmtObs">FMT obtenido</label><input id="fmtObs" type="number" min="0" step="1" placeholder="Ej. 270"><span class="unit">L/min</span></div>
+</div>
+<div class="results">
+<div class="result"><div class="k">Referencia tos normal</div><div class="v">270 L/min</div></div>
+<div class="result"><div class="k">Mínimo aceptable</div><div class="v">160 L/min</div></div>
+</div>
+<div id="fmtMsg"></div>
+<p class="note">S8 enfatiza que estos números no deben analizarse separados de la observación y razonamiento clínico.</p>
+</div>
+</section>
+
+<section id="imt" class="section">
+<div class="card">
+<h2>Válvula IMT</h2>
+<p class="desc">Calcula la carga inicial mínima de referencia: 30% de la PImáx.</p>
+<div class="grid">
+<div class="unit-wrap"><label for="imtPi">PImáx obtenida</label><input id="imtPi" type="number" step="0.1" placeholder="Ej. -60"><span class="unit">cmH₂O</span></div>
+<div><label for="imtPct">Carga seleccionada</label><select id="imtPct"><option value="30">30% (mínima indicada en S8)</option></select></div>
+</div>
+<div class="results">
+<div class="result"><div class="k">Carga IMT</div><div class="v" id="imtLoad">—</div></div>
+</div>
+<div id="imtMsg"></div>
+<div class="formula">Carga = |PImáx| × 0,30</div>
+</div>
+</section>
+
+<section id="tm6" class="section">
+<div class="card">
+<h2>Test de Marcha de 6 Minutos · TM6</h2>
+<p class="desc">Calcula distancia teórica con las ecuaciones chilenas de referencia, porcentaje alcanzado y caída de SpO₂.</p>
+<div class="grid three">
+<div><label for="tmSex">Sexo</label><select id="tmSex"><option value="">Seleccionar</option><option value="h">Hombre</option><option value="m">Mujer</option></select></div>
+<div class="unit-wrap"><label for="tmAge">Edad</label><input id="tmAge" type="number" min="0" max="120" step="1"><span class="unit">años</span></div>
+<div class="unit-wrap"><label for="height">Talla</label><input id="height" type="number" min="50" max="250" step="0.1" placeholder="Ej. 170"><span class="unit">cm</span></div>
+<div class="unit-wrap"><label for="weight">Peso</label><input id="weight" type="number" min="1" max="400" step="0.1" placeholder="Ej. 75"><span class="unit">kg</span></div>
+<div class="unit-wrap"><label for="distance">Distancia recorrida</label><input id="distance" type="number" min="0" step="0.1" placeholder="Ej. 450"><span class="unit">m</span></div>
+<div class="unit-wrap"><label for="spo2i">SpO₂ inicial</label><input id="spo2i" type="number" min="0" max="100" step="0.1"><span class="unit">%</span></div>
+<div class="unit-wrap"><label for="spo2f">SpO₂ final</label><input id="spo2f" type="number" min="0" max="100" step="0.1"><span class="unit">%</span></div>
+</div>
+<div class="results">
+<div class="result"><div class="k">Distancia teórica</div><div class="v" id="tmTheo">—</div></div>
+<div class="result"><div class="k">% distancia teórica</div><div class="v" id="tmPct">—</div></div>
+<div class="result"><div class="k">Caída SpO₂</div><div class="v" id="spoDrop">—</div></div>
+</div>
+<div id="tmMsg"></div>
+</div>
+</section>
+
+<section id="referencias" class="section">
+<div class="card">
+<h2>Fórmulas y criterios incorporados</h2>
+<table>
+<thead><tr><th>Parámetro</th><th>Hombre</th><th>Mujer</th></tr></thead>
+<tbody>
+<tr><td>PImáx teórica</td><td>120 − (0,41 × edad)</td><td>108 − (0,61 × edad)</td></tr>
+<tr><td>LLN PImáx</td><td>62 − (0,15 × edad)</td><td>62 − (0,50 × edad)</td></tr>
+<tr><td>PEmáx teórica</td><td>174 − (0,83 × edad)</td><td>131 − (0,86 × edad)</td></tr>
+<tr><td>LLN PEmáx</td><td>117 − (0,83 × edad)</td><td>95 − (0,57 × edad)</td></tr>
+<tr><td>DR6 TM6</td><td>530 − (3,31×edad) + (2,36×talla) − (1,49×peso)</td><td>457 − (3,46×edad) + (2,61×talla) − (1,57×peso)</td></tr>
+</tbody>
+</table>
+<p class="note"><strong>Criterios de interpretación:</strong> presión bajo LLN → alteración de fuerza muscular respiratoria; &lt;80% del teórico → posible debilidad. FEM ≥90% → adecuado/estable en el contexto clínico; FEM &lt;90% → orienta a descompensación; FEM &lt;150 L/min → el apunte indica hospitalización. FMT: 270 L/min como tos normal y 160 L/min como mínimo aceptable; bajo 160 se considera ineficaz. IMT: carga inicial mínima de 30% PImáx. TM6: caída de SpO₂ ≥4% se considera significativa.</p>
+<p class="note">Herramienta de estudio construida exclusivamente a partir del contenido S8 proporcionado. No sustituye valoración clínica ni protocolos institucionales.</p>
+</div>
+</section>
+</main>
+
+<footer><strong>iPhone:</strong> abre esta página en Safari una vez y luego usa Compartir → Añadir a pantalla de inicio. Tras la primera carga, la aplicación queda disponible offline. Los cálculos se realizan localmente en el dispositivo.</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  function byId(id) { return document.getElementById(id); }
+
+  function getNum(id) {
+    var el = byId(id);
+    if (!el || el.value === "") return null;
+    var v = parseFloat(String(el.value).replace(",", "."));
+    return isFinite(v) ? v : null;
+  }
+
+  function formatNum(n, decimals) {
+    if (!isFinite(n)) return "—";
+    if (typeof decimals === "undefined") decimals = 1;
+    return n.toFixed(decimals).replace(".", ",");
+  }
+
+  function setText(id, value) {
+    var el = byId(id);
+    if (el) el.textContent = value;
+  }
+
+  function setMessage(id, text, cls) {
+    var el = byId(id);
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
+    if (!text) return;
+    var box = document.createElement("div");
+    box.className = "message " + (cls || "neutral");
+    box.textContent = text;
+    el.appendChild(box);
+  }
+
+  function clearMarks(ids) {
+    var i, el;
+    for (i = 0; i < ids.length; i++) {
+      el = byId(ids[i]);
+      if (el) {
+        el.classList.remove("altered");
+        el.classList.remove("attention");
+      }
+    }
+  }
+
+  function mark(id, cls) {
+    var el = byId(id);
+    if (el) el.classList.add(cls || "altered");
+  }
+
+  function calcPressures() {
+    clearMarks(["piLlnCard","piPctCard","pi80Card","peLlnCard","pePctCard","pe80Card"]);
+
+    var sex = byId("sex").value;
+    var age = getNum("age");
+    var pi = getNum("pimax");
+    var pe = getNum("pemax");
+
+    if (!sex || age === null) {
+      var empty = ["piTheo","piLln","piPct","piDef","pi80","peTheo","peLln","pePct","peDef","pe80"];
+      var i;
+      for (i = 0; i < empty.length; i++) setText(empty[i], "—");
+      setMessage("piMsg", "");
+      setMessage("peMsg", "");
+      return;
+    }
+
+    var pit, pilln, pet, pelln;
+    if (sex === "h") {
+      pit = 120 - (0.41 * age);
+      pilln = 62 - (0.15 * age);
+      pet = 174 - (0.83 * age);
+      pelln = 117 - (0.83 * age);
+    } else {
+      pit = 108 - (0.61 * age);
+      pilln = 62 - (0.50 * age);
+      pet = 131 - (0.86 * age);
+      pelln = 95 - (0.57 * age);
+    }
+
+    setText("piTheo", formatNum(pit) + " cmH₂O");
+    setText("piLln", formatNum(pilln) + " cmH₂O");
+    setText("pi80", formatNum(pit * 0.80) + " cmH₂O");
+    setText("peTheo", formatNum(pet) + " cmH₂O");
+    setText("peLln", formatNum(pelln) + " cmH₂O");
+    setText("pe80", formatNum(pet * 0.80) + " cmH₂O");
+
+    if (pi !== null) {
+      var pia = Math.abs(pi);
+      var pipct = (pia / pit) * 100;
+      var pidef = 100 - pipct;
+      setText("piPct", formatNum(pipct) + "%");
+      setText("piDef", formatNum(pidef) + "%");
+
+      if (pia < pilln) {
+        mark("piLlnCard");
+        setMessage("piMsg", "PImáx bajo LLN: existe alteración de la fuerza muscular respiratoria y es subsidiario de EMR.", "bad");
+      } else if (pipct < 80) {
+        mark("piPctCard");
+        mark("pi80Card");
+        setMessage("piMsg", "PImáx ≥ LLN pero <80% del teórico: posible debilidad muscular.", "warn");
+      } else {
+        setMessage("piMsg", "PImáx ≥ LLN y ≥80% del teórico.", "ok");
+      }
+    } else {
+      setText("piPct", "—");
+      setText("piDef", "—");
+      setMessage("piMsg", "");
+    }
+
+    if (pe !== null) {
+      var pea = Math.abs(pe);
+      var pepct = (pea / pet) * 100;
+      var redef = 100 - pepct;
+      setText("pePct", formatNum(pepct) + "%");
+      setText("peDef", formatNum(redef) + "%");
+
+      if (pea < pelln) {
+        mark("peLlnCard");
+        setMessage("peMsg", "PEmáx bajo LLN: existe alteración de la fuerza muscular respiratoria.", "bad");
+      } else if (pepct < 80) {
+        mark("pePctCard");
+        mark("pe80Card");
+        setMessage("peMsg", "PEmáx ≥ LLN pero <80% del teórico: posible debilidad muscular.", "warn");
+      } else {
+        setMessage("peMsg", "PEmáx ≥ LLN y ≥80% del teórico.", "ok");
+      }
+    } else {
+      setText("pePct", "—");
+      setText("peDef", "—");
+      setMessage("peMsg", "");
+    }
+  }
+
+  function calcFem() {
+    clearMarks(["femPctCard","fem90Card"]);
+    var t = getNum("femTheo");
+    var o = getNum("femObs");
+
+    if (t === null || t <= 0) {
+      setText("femPct", "—");
+      setText("fem90", "—");
+      setMessage("femMsg", "Ingrese un valor teórico mayor que 0.", "warn");
+      return;
+    }
+
+    setText("fem90", formatNum(t * 0.90, 0) + " L/min");
+    if (o === null) {
+      setText("femPct", "—");
+      setMessage("femMsg", "");
+      return;
+    }
+
+    var pct = (o / t) * 100;
+    setText("femPct", formatNum(pct) + "%");
+
+    if (o < 150) {
+      mark("femPctCard");
+      setMessage("femMsg", "FEM <150 L/min. Criterio de hospitalización.", "bad");
+    } else if (pct < 90) {
+      mark("femPctCard");
+      mark("fem90Card");
+      setMessage("femMsg", "FEM <90% del teórico: orienta a patología descompensada / limitación del flujo aéreo.", "warn");
+    } else {
+      setMessage("femMsg", "FEM ≥90% del teórico: adecuado o compatible con patología estable/controlada en seguimiento.", "ok");
+    }
+  }
+
+  function calcFmt() {
+    var o = getNum("fmtObs");
+    if (o === null) {
+      setMessage("fmtMsg", "");
+      return;
+    }
+    if (o < 160) {
+      setMessage("fmtMsg", "FMT <160 L/min: tos ineficaz.", "bad");
+    } else if (o < 270) {
+      setMessage("fmtMsg", "FMT entre 160 y 269 L/min: sobre el mínimo aceptable, pero bajo la referencia de 270 L/min para tos normal. Integrar con observación clínica.", "warn");
+    } else {
+      setMessage("fmtMsg", "FMT ≥270 L/min: alcanza la referencia de tos normal.", "ok");
+    }
+  }
+
+  function calcImt() {
+    var p = getNum("imtPi");
+    if (p === null) {
+      setText("imtLoad", "—");
+      setMessage("imtMsg", "");
+      return;
+    }
+    var load = Math.abs(p) * 0.30;
+    setText("imtLoad", formatNum(load) + " cmH₂O");
+    setMessage("imtMsg", "Carga inicial: 30% de la magnitud de PImáx.", "neutral");
+  }
+
+  function calcTm6() {
+    var sex = byId("tmSex").value;
+    var age = getNum("tmAge");
+    var height = getNum("height");
+    var weight = getNum("weight");
+    var distance = getNum("distance");
+    var spo2i = getNum("spo2i");
+    var spo2f = getNum("spo2f");
+    var theo = null;
+
+    if (sex && age !== null && height !== null && weight !== null) {
+      if (sex === "h") {
+        theo = 530 - (3.31 * age) + (2.36 * height) - (1.49 * weight);
+      } else {
+        theo = 457 - (3.46 * age) + (2.61 * height) - (1.57 * weight);
+      }
+      setText("tmTheo", formatNum(theo) + " m");
+      if (distance !== null && theo > 0) {
+        setText("tmPct", formatNum((distance / theo) * 100) + "%");
+      } else {
+        setText("tmPct", "—");
+      }
+    } else {
+      setText("tmTheo", "—");
+      setText("tmPct", "—");
+    }
+
+    if (spo2i !== null && spo2f !== null) {
+      var drop = spo2i - spo2f;
+      setText("spoDrop", formatNum(drop) + " puntos");
+      if (drop >= 4) {
+        setMessage("tmMsg", "Caída de SpO₂ ≥4%: desaturación significativa.", "bad");
+      } else {
+        setMessage("tmMsg", "Caída de SpO₂ <4%: no alcanza criterio de desaturación significativa.", "ok");
+      }
+    } else {
+      setText("spoDrop", "—");
+      setMessage("tmMsg", "");
+    }
+  }
+
+  function calculateAll() {
+    try { calcPressures(); } catch (e) {}
+    try { calcFem(); } catch (e) {}
+    try { calcFmt(); } catch (e) {}
+    try { calcImt(); } catch (e) {}
+    try { calcTm6(); } catch (e) {}
+  }
+
+  function bindCalculators() {
+    var controls = document.querySelectorAll("input, select");
+    var i;
+    for (i = 0; i < controls.length; i++) {
+      controls[i].addEventListener("input", calculateAll, false);
+      controls[i].addEventListener("change", calculateAll, false);
+      controls[i].addEventListener("blur", calculateAll, false);
+    }
+  }
+
+  function bindTabs() {
+    var buttons = document.querySelectorAll("#tabs button");
+    var i;
+    for (i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function () {
+        var sections = document.querySelectorAll(".section");
+        var j;
+        for (j = 0; j < sections.length; j++) sections[j].classList.remove("active");
+        var target = byId(this.getAttribute("data-tab"));
+        if (target) target.classList.add("active");
+      }, false);
+    }
+  }
+
+  function bindReset() {
+    var reset = byId("reset");
+    if (!reset) return;
+    reset.addEventListener("click", function () {
+      var inputs = document.querySelectorAll("input");
+      var selects = document.querySelectorAll("select");
+      var i;
+      for (i = 0; i < inputs.length; i++) inputs[i].value = "";
+      for (i = 0; i < selects.length; i++) selects[i].selectedIndex = 0;
+      byId("femTheo").value = "400";
+      calculateAll();
+    }, false);
+  }
+
+  bindTabs();
+  bindCalculators();
+  bindReset();
+  calculateAll();
+}());
+</script>
+
+<script>
+(function () {
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }, false);
+  }
+}());
+</script>
+
+</body>
+</html>
