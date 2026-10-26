@@ -2,10 +2,14 @@
 
 Calculadora estática para GitHub Pages.
 
-Archivos:
+## Archivos
 - `index.html`: aplicación.
-- `manifest.webmanifest`: configuración para instalación en iPhone.
+- `manifest.webmanifest`: configuración PWA.
 - `sw.js`: caché offline.
+- `icon-180.png`: icono para iPhone/iPad.
+- `icon-192.png`: icono PWA.
+- `icon-512.png`: icono PWA de alta resolución.
 - `.nojekyll`: publicación directa de archivos estáticos.
 
-Después de activar GitHub Pages, abrir la URL publicada una vez en Safari.
+Después de subir los archivos a la rama `main`, GitHub Pages mantendrá la misma URL.
+En iPhone, si el acceso ya estaba instalado con el icono anterior, elimínalo de la pantalla de inicio y vuelve a añadirlo desde Safari para forzar el nuevo icono.

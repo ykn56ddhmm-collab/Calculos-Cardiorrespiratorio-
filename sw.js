@@ -1,5 +1,12 @@
-var CACHE_NAME = "s8-pulmonar-v3";
-var APP_FILES = ["./", "./index.html", "./manifest.webmanifest"];
+var CACHE_NAME = "s8-pulmonar-v4";
+var APP_FILES = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./icon-180.png",
+  "./icon-192.png",
+  "./icon-512.png"
+];
 
 self.addEventListener("install", function (event) {
   event.waitUntil(
