@@ -50,6 +50,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(23
 .note{font-size:13px;color:var(--muted);margin-top:12px}
 .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:#f6f8fa;padding:9px 11px;border-radius:8px;margin-top:10px}
 .toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.segmented{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.segmented button{border:1px solid var(--line);background:#fff;color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:650}.segmented button.active{background:var(--accent);border-color:var(--accent);color:#fff}.distance-box{margin-top:14px;padding:14px;border:1px solid var(--line);background:#f7f9fa;border-radius:12px}.distance-box .big{font-size:26px;font-weight:800;margin-top:3px}.inline-note{font-size:12px;color:var(--muted);margin-top:5px}
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 6px}
 footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-size:12px}
 @media(max-width:700px){.grid,.grid.three{grid-template-columns:1fr}.results{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:16px;border-radius:14px}.result{padding:11px}.result .v{font-size:18px}header{padding:22px 16px}main{padding:14px 12px 42px}nav{top:0;padding-top:8px;padding-bottom:10px;-webkit-overflow-scrolling:touch}nav button,.reset{min-height:44px}input,select{min-height:46px}}
@@ -163,13 +164,15 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 <section id="tm6" class="section">
 <div class="card">
 <h2>Test de Marcha de 6 Minutos · TM6</h2>
-<p class="desc">Calcula distancia teórica con las ecuaciones chilenas de referencia, porcentaje alcanzado y caída de SpO₂.</p>
+<p class="desc">Calcula distancia total en pasillo de 30 m, distancia teórica, porcentaje alcanzado, clasificación general por distancia, límite inferior individual y significancia de la caída de SpO₂.</p>
 <div class="grid three">
 <div><label for="tmSex">Sexo</label><select id="tmSex"><option value="">Seleccionar</option><option value="h">Hombre</option><option value="m">Mujer</option></select></div>
 <div class="unit-wrap"><label for="tmAge">Edad</label><input id="tmAge" type="number" min="0" max="120" step="1"><span class="unit">años</span></div>
 <div class="unit-wrap"><label for="height">Talla</label><input id="height" type="number" min="50" max="250" step="0.1" placeholder="Ej. 170"><span class="unit">cm</span></div>
 <div class="unit-wrap"><label for="weight">Peso</label><input id="weight" type="number" min="1" max="400" step="0.1" placeholder="Ej. 75"><span class="unit">kg</span></div>
-<div class="unit-wrap"><label for="distance">Distancia recorrida</label><input id="distance" type="number" min="0" step="0.1" placeholder="Ej. 450"><span class="unit">m</span></div>
+<div class="unit-wrap"><label for="tmLaps">Idas y Vueltas Totales al Finalizar</label><input id="tmLaps" type="number" min="0" step="1" placeholder="Ej. 7"><span class="unit">total</span></div>
+<div><label>Seleccione el tramo donde finalizó</label><div class="segmented" id="tmFinishButtons"><button type="button" data-finish="complete" class="active">Terminó justo en una ida y vuelta</button><button type="button" data-finish="fullout">Terminó en una ida completa</button><button type="button" data-finish="out">Terminó en una ida incompleta</button><button type="button" data-finish="back">Terminó en una vuelta incompleta</button></div><p class="inline-note">Ingresa el total de idas y vueltas completas realizadas y selecciona dónde finalizó al cumplirse los 6 minutos.</p></div>
+<div class="distance-box"><div class="k">Distancia recorrida calculada</div><div class="big" id="distanceCalc">—</div><div class="inline-note" id="distanceBreakdown">Ingresa las idas y vueltas totales y selecciona el tramo donde finalizó.</div></div>
 <div class="unit-wrap"><label for="spo2i">SpO₂ inicial</label><input id="spo2i" type="number" min="0" max="100" step="0.1"><span class="unit">%</span></div>
 <div class="unit-wrap"><label for="spo2f">SpO₂ final</label><input id="spo2f" type="number" min="0" max="100" step="0.1"><span class="unit">%</span></div>
 </div>
@@ -177,8 +180,13 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 <div class="result"><div class="k">Distancia teórica</div><div class="v" id="tmTheo">—</div></div>
 <div class="result"><div class="k">% distancia teórica</div><div class="v" id="tmPct">—</div></div>
 <div class="result"><div class="k">Caída SpO₂</div><div class="v" id="spoDrop">—</div></div>
+<div class="result" id="tmClassCard"><div class="k">Clasificación general</div><div class="v" id="tmClass">—</div></div>
+<div class="result" id="tmLlnCard"><div class="k">Límite inferior</div><div class="v" id="tmLln">—</div></div>
+<div class="result" id="tmCapacityCard"><div class="k">Capacidad funcional</div><div class="v" id="tmCapacity">—</div></div>
 </div>
 <div id="tmMsg"></div>
+<div id="tmClassMsg"></div>
+<div id="tmCapacityMsg"></div>
 </div>
 </section>
 
@@ -404,7 +412,25 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
     var age = getNum("tmAge");
     var height = getNum("height");
     var weight = getNum("weight");
-    var distance = getNum("distance");
+    var laps = getNum("tmLaps");
+        var finishBtn = document.querySelector("#tmFinishButtons button.active");
+    var finish = finishBtn ? finishBtn.getAttribute("data-finish") : "complete";
+    var distance = null;
+    if (laps !== null && laps >= 0) {
+      distance = laps * 60;
+      if (finish === "fullout") distance += 30;
+      if (finish === "out") distance += 15;
+      if (finish === "back") distance += 45;
+      setText("distanceCalc", formatNum(distance) + " m");
+      var detail = laps + " ida(s) y vuelta(s) completa(s) × 60 m";
+      if (finish === "fullout") detail += " + 30 m";
+      if (finish === "out") detail += " + 15 m";
+      if (finish === "back") detail += " + 45 m";
+      setText("distanceBreakdown", detail + " = " + formatNum(distance) + " m");
+    } else {
+      setText("distanceCalc", "—");
+      setText("distanceBreakdown", "Ingresa las idas y vueltas totales y selecciona el tramo donde finalizó.");
+    }
     var spo2i = getNum("spo2i");
     var spo2f = getNum("spo2f");
     var theo = null;
@@ -426,13 +452,51 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
       setText("tmPct", "—");
     }
 
+    clearMarks(["tmClassCard","tmLlnCard","tmCapacityCard"]);
+
+    if (distance !== null) {
+      var classification = "";
+      if (distance < 350) classification = "A · Malo";
+      else if (distance < 450) classification = "B · Regular";
+      else if (distance <= 650) classification = "C · Bueno";
+      else classification = "D · Muy bueno";
+      setText("tmClass", classification);
+      setMessage("tmClassMsg", "Clasificación general por distancia: " + classification + " (" + formatNum(distance) + " m).", distance < 350 ? "bad" : (distance < 450 ? "warn" : "ok"));
+    } else {
+      setText("tmClass", "—");
+      setMessage("tmClassMsg", "");
+    }
+
+    if (theo !== null && sex) {
+      var lln = theo - (sex === "m" ? 53 : 58);
+      setText("tmLln", formatNum(lln) + " m");
+      if (distance !== null) {
+        if (distance < lln) {
+          setText("tmCapacity", "Alterada");
+          mark("tmCapacityCard", "altered");
+          mark("tmLlnCard", "attention");
+          setMessage("tmCapacityMsg", "Capacidad funcional alterada: recorrió " + formatNum(distance) + " m, por debajo del límite inferior calculado de " + formatNum(lln) + " m.", "bad");
+        } else {
+          setText("tmCapacity", "No alterada");
+          setMessage("tmCapacityMsg", "Capacidad funcional no alterada según este criterio: recorrió " + formatNum(distance) + " m y el límite inferior calculado es " + formatNum(lln) + " m.", "ok");
+        }
+      } else {
+        setText("tmCapacity", "—");
+        setMessage("tmCapacityMsg", "");
+      }
+    } else {
+      setText("tmLln", "—");
+      setText("tmCapacity", "—");
+      setMessage("tmCapacityMsg", "");
+    }
+
     if (spo2i !== null && spo2f !== null) {
       var drop = spo2i - spo2f;
       setText("spoDrop", formatNum(drop) + " puntos");
       if (drop >= 4) {
-        setMessage("tmMsg", "Caída de SpO₂ ≥4%: desaturación significativa.", "bad");
+        setMessage("tmMsg", "Caída de SpO₂ ≥4 puntos: SIGNIFICATIVA según el criterio incorporado en el material.", "bad");
       } else {
-        setMessage("tmMsg", "Caída de SpO₂ <4%: no alcanza criterio de desaturación significativa.", "ok");
+        setMessage("tmMsg", "Caída de SpO₂ <4 puntos: NO SIGNIFICATIVA según el criterio incorporado en el material.", "ok");
       }
     } else {
       setText("spoDrop", "—");
@@ -455,6 +519,21 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
       controls[i].addEventListener("input", calculateAll, false);
       controls[i].addEventListener("change", calculateAll, false);
       controls[i].addEventListener("blur", calculateAll, false);
+    }
+  }
+
+
+  function bindTmFinishButtons() {
+    var buttons = document.querySelectorAll("#tmFinishButtons button");
+    var i;
+    for (i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function () {
+        var j;
+        for (j = 0; j < buttons.length; j++) buttons[j].classList.remove("active");
+        this.classList.add("active");
+        var mode = this.getAttribute("data-finish");
+        calculateAll();
+      }, false);
     }
   }
 
@@ -482,12 +561,16 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
       for (i = 0; i < inputs.length; i++) inputs[i].value = "";
       for (i = 0; i < selects.length; i++) selects[i].selectedIndex = 0;
       byId("femTheo").value = "400";
+      var finishButtons = document.querySelectorAll("#tmFinishButtons button");
+      for (i = 0; i < finishButtons.length; i++) finishButtons[i].classList.remove("active");
+      if (finishButtons.length) finishButtons[0].classList.add("active");
       calculateAll();
     }, false);
   }
 
   bindTabs();
   bindCalculators();
+  bindTmFinishButtons();
   bindReset();
   calculateAll();
 }());

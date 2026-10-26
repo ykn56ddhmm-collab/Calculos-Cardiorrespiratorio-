@@ -1,4 +1,4 @@
-var CACHE_NAME = "s8-pulmonar-v1";
+var CACHE_NAME = "s8-pulmonar-v3";
 var APP_FILES = ["./", "./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", function (event) {
