@@ -1,4 +1,4 @@
-var CACHE_NAME = "s8-pulmonar-v4";
+var CACHE_NAME = "s8-pulmonar-v6";
 var APP_FILES = [
   "./",
   "./index.html",
