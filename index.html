@@ -91,6 +91,7 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 <button data-tab="fmt">FMT</button>
 <button data-tab="imt">IMT</button>
 <button data-tab="tm6">TM6</button>
+<button data-tab="sts30">STS 30 s</button>
 <button data-tab="referencias">Referencias</button>
 </nav>
 <div class="toolbar"><button class="reset" id="reset">Limpiar todos los datos</button></div>
@@ -215,6 +216,34 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 <div id="tmMsg"></div>
 <div id="tmClassMsg"></div>
 <div id="tmCapacityMsg"></div>
+</div>
+</section>
+
+
+<section id="sts30" class="section">
+<div class="card">
+<h2>30-s STS · Sentarse y levantarse en 30 segundos</h2>
+<p class="desc">Registra el máximo número de repeticiones completas en 30 segundos. La interpretación se basa en el percentil 2,5 (P2,5) de la tabla proporcionada.</p>
+<div class="tm-timer" id="stsTimerPanel" role="group" aria-label="Cronómetro de 30 segundos">
+<div class="k">Cronómetro STS · cuenta regresiva</div>
+<div class="tm-timer-clock" id="stsTimerClock" role="timer">00:30</div>
+<div class="tm-timer-status" id="stsTimerStatus" aria-live="polite">Listo para iniciar</div>
+<div class="tm-timer-actions"><button type="button" id="stsTimerStart">Iniciar</button><button type="button" id="stsTimerPause" class="secondary" disabled>Pausar</button><button type="button" id="stsTimerReset" class="secondary">Reiniciar</button></div>
+<p class="note">Una señal sonora por segundo desde 00:10 hasta 00:01; tres señales al finalizar. Mantén la pantalla encendida y el volumen alto. El sonido depende de las restricciones del navegador y del dispositivo.</p>
+</div>
+<div class="grid three">
+<div><label for="stsSex">Sexo</label><select id="stsSex"><option value="">Seleccionar</option><option value="m">Mujer</option><option value="h">Hombre</option></select></div>
+<div class="unit-wrap"><label for="stsAge">Edad</label><input id="stsAge" type="number" min="18" max="80" step="1" placeholder="Ej. 65"><span class="unit">años</span></div>
+<div class="unit-wrap"><label for="stsReps">Repeticiones completas</label><input id="stsReps" type="number" min="0" step="1" placeholder="Ej. 14"><span class="unit">reps</span></div>
+</div>
+<div class="results">
+<div class="result"><div class="k">Grupo etario</div><div class="v" id="stsGroup">—</div></div>
+<div class="result"><div class="k">Límite P2,5</div><div class="v" id="stsLower">—</div></div>
+<div class="result"><div class="k">Referencia P50</div><div class="v" id="stsMedian">—</div></div>
+<div class="result" id="stsResultCard"><div class="k">Interpretación</div><div class="v" id="stsResult">—</div></div>
+</div>
+<div id="stsMessage"></div>
+<p class="note">Normal según el criterio del apunte: repeticiones ≥ P2,5. Un resultado normal respecto de P2,5 puede estar por debajo de la mediana (P50). La tabla cubre edades de 18 a 80 años; fuera de ese rango no se extrapola.</p>
 </div>
 </section>
 
@@ -704,6 +733,59 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
       navigator.serviceWorker.register("./sw.js").catch(function () {});
     }, false);
   }
+}());
+</script>
+
+
+<script>
+(function () {
+  "use strict";
+  var rows = [
+    {min:18,max:29,m:[13,19],h:[13,19]},
+    {min:30,max:39,m:[14,20],h:[14,21]},
+    {min:40,max:49,m:[11,17],h:[13,16]},
+    {min:50,max:59,m:[10,16],h:[11,18]},
+    {min:60,max:69,m:[9,15],h:[9,14]},
+    {min:70,max:80,m:[9,13],h:[8,11]}
+  ];
+  function el(id){return document.getElementById(id);}
+  function calc(){
+    var sex=el("stsSex").value, a=el("stsAge").value, r=el("stsReps").value;
+    var age=a===""?null:Number(a), reps=r===""?null:Number(r);
+    var row=rows.find(function(x){return age!==null && Number.isInteger(age) && age>=x.min && age<=x.max;});
+    var values=row&&sex?row[sex]:null;
+    el("stsGroup").textContent=row?row.min+"–"+row.max+" años":"—";
+    el("stsLower").textContent=values?values[0]+" reps":"—";
+    el("stsMedian").textContent=values?values[1]+" reps":"—";
+    var card=el("stsResultCard"); card.classList.remove("altered","attention");
+    el("stsResult").textContent="—";el("stsMessage").textContent="";
+    if (age!==null&&!row){el("stsMessage").textContent="Edad fuera de los grupos de referencia (18–80 años).";return;}
+    if (!values || reps===null) return;
+    if (!Number.isInteger(reps)||reps<0){el("stsMessage").textContent="Ingresa un número entero de repeticiones, igual o mayor a cero.";return;}
+    var normal=reps>=values[0];
+    el("stsResult").textContent=normal?"Normal (≥P2,5)":"Bajo P2,5";
+    if (!normal) card.classList.add("altered");
+    else if (reps<values[1]) card.classList.add("attention");
+    el("stsMessage").textContent=normal
+      ?"Resultado dentro del criterio de normalidad: "+reps+" repeticiones (P2,5 = "+values[0]+", P50 = "+values[1]+")."
+      :"Resultado bajo el límite P2,5: "+reps+" repeticiones; mínimo de referencia = "+values[0]+".";
+  }
+  ["stsSex","stsAge","stsReps"].forEach(function(id){el(id).addEventListener("input",calc);el(id).addEventListener("change",calc);});
+  var total=30, remaining=total, running=false, deadline=0, interval=null, last=total, audio=null, wake=null;
+  var start=el("stsTimerStart"), pause=el("stsTimerPause"), reset=el("stsTimerReset"), clock=el("stsTimerClock"), status=el("stsTimerStatus"), panel=el("stsTimerPanel");
+  function audioInit(){try{var C=window.AudioContext||window.webkitAudioContext;if(!audio&&C)audio=new C();if(audio&&audio.state==="suspended")audio.resume();}catch(e){}}
+  function beep(n){if(!audio)return;var t=audio.currentTime+.02;for(var i=0;i<n;i++){try{var o=audio.createOscillator(),g=audio.createGain(),at=t+i*.32;o.type="square";o.frequency.value=n===3?1250:1050;g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(.5,at+.015);g.gain.setValueAtTime(.5,at+.18);g.gain.exponentialRampToValueAtTime(.0001,at+.23);o.connect(g);g.connect(audio.destination);o.start(at);o.stop(at+.25);}catch(e){}}}
+  function wakeOn(){if(navigator.wakeLock&&navigator.wakeLock.request)navigator.wakeLock.request("screen").then(function(x){wake=x;}).catch(function(){});}
+  function wakeOff(){if(wake){wake.release().catch(function(){});wake=null;}}
+  function display(){clock.textContent="00:"+String(remaining).padStart(2,"0");panel.classList.toggle("ending",remaining<=10&&remaining>0);start.disabled=running||remaining===0;pause.disabled=!running;start.textContent=remaining===total?"Iniciar":"Continuar";}
+  function stop(){if(interval!==null){clearInterval(interval);interval=null;}}
+  function tick(){if(!running)return;var next=Math.max(0,Math.ceil((deadline-performance.now())/1000));if(next<last){for(var i=last-1;i>=next;i--){if(i===0){beep(3);status.textContent="Prueba finalizada";}else if(i<=10){beep(1);status.textContent="Quedan "+i+" segundos";}}last=next;}remaining=next;display();if(!remaining){running=false;stop();wakeOff();display();}}
+  start.addEventListener("click",function(){audioInit();running=true;deadline=performance.now()+remaining*1000;last=remaining;status.textContent="Cronómetro en marcha";wakeOn();stop();interval=setInterval(tick,100);display();});
+  pause.addEventListener("click",function(){tick();running=false;stop();wakeOff();status.textContent="En pausa";display();});
+  reset.addEventListener("click",function(){running=false;stop();wakeOff();remaining=total;last=total;status.textContent="Listo para iniciar";display();});
+  document.addEventListener("visibilitychange",function(){if(!document.hidden&&running){wakeOn();tick();}});
+  var clear=el("reset");if(clear)clear.addEventListener("click",function(){calc();},false);
+  display();calc();
 }());
 </script>
 

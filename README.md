@@ -13,3 +13,6 @@ Calculadora estática para GitHub Pages.
 
 Después de subir los archivos a la rama `main`, GitHub Pages mantendrá la misma URL.
 En iPhone, si el acceso ya estaba instalado con el icono anterior, elimínalo de la pantalla de inicio y vuelve a añadirlo desde Safari para forzar el nuevo icono.
+
+## STS de 30 segundos
+Incluye cronómetro sonoro y comparación de repeticiones con P2,5 y P50 por sexo y edad (18–80 años) según tabla suministrada.
