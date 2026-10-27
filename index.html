@@ -66,6 +66,16 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 @media(max-width:700px){.grid,.grid.three{grid-template-columns:1fr}.results{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:16px;border-radius:14px}.result{padding:11px}.result .v{font-size:18px}header{padding:22px 16px}main{padding:14px 12px 42px}nav{top:0;padding-top:8px;padding-bottom:10px;-webkit-overflow-scrolling:touch}nav button,.reset{min-height:44px}input,select{min-height:46px}}
 @media(max-width:390px){.results{grid-template-columns:1fr 1fr}.result .v{font-size:17px}}
 @media print{nav,.toolbar{display:none}.section{display:block!important}.card{break-inside:avoid}body{background:#fff}}
+
+/* Cronómetro TM6 */
+.tm-timer{margin:0 0 16px;padding:18px;border:1px solid var(--line);border-radius:16px;background:#f7f9fa;text-align:center}
+.tm-timer-clock{font-size:clamp(42px,9vw,66px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15;margin:7px 0}
+.tm-timer-actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.tm-timer-actions button{min-height:46px;padding:10px 17px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:white;font:inherit;font-weight:700;cursor:pointer}
+.tm-timer-actions button.secondary{background:white;color:var(--accent)}
+.tm-timer-actions button:disabled{opacity:.45;cursor:not-allowed}
+.tm-timer-status{font-weight:650;color:var(--muted);min-height:24px}
+.tm-timer.ending{background:var(--warnbg);border-color:var(--warn)}
 </style>
 </head>
 <body>
@@ -175,6 +185,13 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 <div class="card">
 <h2>Test de Marcha de 6 Minutos · TM6</h2>
 <p class="desc">Calcula distancia total en pasillo de 30 m, distancia teórica, porcentaje alcanzado, clasificación general por distancia, límite inferior individual y significancia de la caída de SpO₂.</p>
+<div class="tm-timer" id="tmTimerPanel" role="group" aria-label="Cronómetro de seis minutos">
+<div class="k">Cronómetro TM6 · cuenta regresiva</div>
+<div class="tm-timer-clock" id="tmTimerClock" role="timer" aria-label="Tiempo restante">06:00</div>
+<div class="tm-timer-status" id="tmTimerStatus" aria-live="polite">Listo para iniciar</div>
+<div class="tm-timer-actions"><button type="button" id="tmTimerStart">Iniciar</button><button type="button" id="tmTimerPause" class="secondary" disabled>Pausar</button><button type="button" id="tmTimerReset" class="secondary">Reiniciar</button></div>
+<p class="note">Aviso sonoro cada minuto; doble aviso al quedar 1 minuto; cuenta regresiva sonora en los últimos 10 segundos. Mantén la pantalla encendida y el volumen del dispositivo alto.</p>
+</div>
 <div class="grid three">
 <div><label for="tmSex">Sexo</label><select id="tmSex"><option value="">Seleccionar</option><option value="h">Hombre</option><option value="m">Mujer</option></select></div>
 <div class="unit-wrap"><label for="tmAge">Edad</label><input id="tmAge" type="number" min="0" max="120" step="1"><span class="unit">años</span></div>
@@ -595,6 +612,83 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
     }, false);
   }
 
+
+  function bindTmTimer() {
+    var total = 360, remaining = total, running = false, endAt = 0, tickId = null;
+    var audio = null, wakeLock = null, lastSecond = total;
+    var clock = byId("tmTimerClock"), status = byId("tmTimerStatus"), panel = byId("tmTimerPanel");
+    var start = byId("tmTimerStart"), pause = byId("tmTimerPause"), reset = byId("tmTimerReset");
+    function initAudio() {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!audio && Ctx) audio = new Ctx();
+        if (audio && audio.state === "suspended") audio.resume();
+      } catch (e) {}
+    }
+    function beep(at, duration, frequency) {
+      if (!audio) return;
+      try {
+        var osc = audio.createOscillator(), gain = audio.createGain();
+        osc.type = "square"; osc.frequency.value = frequency || 1050;
+        gain.gain.setValueAtTime(0.0001, at);
+        gain.gain.exponentialRampToValueAtTime(0.55, at + 0.012);
+        gain.gain.setValueAtTime(0.55, at + duration - 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+        osc.connect(gain); gain.connect(audio.destination);
+        osc.start(at); osc.stop(at + duration + 0.015);
+      } catch (e) {}
+    }
+    function sound(count) {
+      if (!audio) return;
+      var t = audio.currentTime + 0.015;
+      for (var i = 0; i < count; i++) beep(t + i * 0.32, 0.20, count === 3 ? 1250 : 1050);
+    }
+    function display() {
+      clock.textContent = String(Math.floor(remaining / 60)).padStart(2, "0") + ":" + String(remaining % 60).padStart(2, "0");
+      panel.classList.toggle("ending", remaining <= 60 && remaining > 0);
+      start.disabled = running || remaining === 0;
+      pause.disabled = !running;
+      start.textContent = remaining === total ? "Iniciar" : "Continuar";
+    }
+    function releaseWake() { if (wakeLock) { wakeLock.release().catch(function(){}); wakeLock = null; } }
+    function requestWake() {
+      if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request("screen").then(function(lock){wakeLock=lock;}).catch(function(){});
+    }
+    function stopTick() { if (tickId !== null) { clearInterval(tickId); tickId = null; } }
+    function tick() {
+      if (!running) return;
+      var next = Math.max(0, Math.ceil((endAt - performance.now()) / 1000));
+      if (next < lastSecond) {
+        for (var sec = lastSecond - 1; sec >= next; sec--) {
+          if (sec === 0) { sound(3); status.textContent = "Tiempo finalizado: 6 minutos"; }
+          else if (sec <= 10) { sound(1); status.textContent = "Últimos " + sec + " segundos"; }
+          else if (sec === 60) { sound(2); status.textContent = "Queda 1 minuto"; }
+          else if (sec % 60 === 0) { sound(1); status.textContent = "Quedan " + (sec / 60) + " minutos"; }
+        }
+        lastSecond = next;
+      }
+      remaining = next; display();
+      if (remaining === 0) { running = false; stopTick(); releaseWake(); display(); }
+    }
+    start.addEventListener("click", function() {
+      initAudio(); running = true; endAt = performance.now() + remaining * 1000;
+      lastSecond = remaining; status.textContent = "Cronómetro en marcha";
+      requestWake(); stopTick(); tickId = setInterval(tick, 100); display();
+    });
+    pause.addEventListener("click", function() {
+      tick(); running = false; stopTick(); releaseWake(); status.textContent = "En pausa"; display();
+    });
+    reset.addEventListener("click", function() {
+      running = false; stopTick(); releaseWake(); remaining = total; lastSecond = total;
+      status.textContent = "Listo para iniciar"; display();
+    });
+    document.addEventListener("visibilitychange", function() {
+      if (!document.hidden && running) { requestWake(); tick(); }
+    });
+    display();
+  }
+
+  bindTmTimer();
   bindTabs();
   bindCalculators();
   bindTmFinishButtons();
