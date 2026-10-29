@@ -1,7 +1,8 @@
-var CACHE_NAME = "s8-pulmonar-v10";
+var CACHE_NAME = "s8-pulmonar-v11";
 var APP_FILES = [
   "./",
   "./index.html",
+  "./isncsci.html",
   "./manifest.webmanifest",
   "./icon-180.png",
   "./icon-192.png",

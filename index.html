@@ -93,6 +93,7 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 <button data-tab="tm6">TM6</button>
 <button data-tab="sts30">STS 30 s</button>
 <button data-tab="quickdash">QuickDASH</button>
+<button data-tab="isncsci">ISNCSCI</button>
 <button data-tab="referencias">Referencias</button>
 </nav>
 <div class="toolbar"><button class="reset" id="reset">Limpiar todos los datos</button></div>
@@ -270,6 +271,15 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 </div>
 <div id="qdWorkMessage" aria-live="polite"></div>
 <p class="note">Ambos módulos generan resultados independientes de 0 a 100; un valor mayor representa mayor limitación. Categorías del material proporcionado (no son puntos de corte oficiales): &lt;25% baja; 25–50% moderada; &gt;50–75% alta; &gt;75% muy alta. El valor 50% se asigna a moderada y 75% a alta. Esta calculadora de sumas presupone todas las respuestas contestadas: 11 para el principal y 4 para trabajo.</p>
+</div>
+</section>
+
+<section id="isncsci" class="section">
+<div class="card">
+<h2>ISNCSCI · Evaluación neurológica</h2>
+<p class="desc">Registro sensitivo, motor y sacro, cálculo de puntajes y clasificación orientativa AIS. Se conserva íntegra la herramienta original en esta sección.</p>
+<p class="note">El registro ISNCSCI se guarda por separado de los datos de S8. Revisa los resultados con el formulario oficial antes de utilizarlos clínicamente.</p>
+<iframe id="isncsciFrame" src="./isncsci.html" title="Evaluación ISNCSCI completa" loading="lazy" style="display:block;width:100%;height:900px;min-height:600px;border:1px solid #d6e1ee;border-radius:12px;background:#f3f7fc" ></iframe>
 </div>
 </section>
 
@@ -878,5 +888,14 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 }());
 </script>
 
+<script>
+window.addEventListener('message',function(event){
+  var frame=document.getElementById('isncsciFrame');
+  if(!frame||event.origin!==window.location.origin||event.source!==frame.contentWindow)return;
+  if(!event.data||event.data.type!=='s8-isncsci-height')return;
+  var h=Number(event.data.height);
+  if(Number.isFinite(h)&&h>=300&&h<=60000)frame.style.height=Math.ceil(h+12)+'px';
+});
+</script>
 </body>
 </html>
