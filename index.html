@@ -92,6 +92,7 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 <button data-tab="imt">IMT</button>
 <button data-tab="tm6">TM6</button>
 <button data-tab="sts30">STS 30 s</button>
+<button data-tab="quickdash">QuickDASH</button>
 <button data-tab="referencias">Referencias</button>
 </nav>
 <div class="toolbar"><button class="reset" id="reset">Limpiar todos los datos</button></div>
@@ -244,6 +245,31 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
 </div>
 <div id="stsMessage"></div>
 <p class="note">Normal según el criterio del apunte: repeticiones ≥ P2,5. Un resultado normal respecto de P2,5 puede estar por debajo de la mediana (P50). La tabla cubre edades de 18 a 80 años; fuera de ese rango no se extrapola.</p>
+</div>
+</section>
+
+
+<section id="quickdash" class="section">
+<div class="card">
+<h2>QuickDASH · Limitación funcional de extremidad superior</h2>
+<p class="desc">Ingresa por separado las sumas de las <strong>11 preguntas principales</strong> y de las <strong>4 preguntas del módulo de trabajo</strong> (12–15). Cada respuesta vale entre 1 y 5. No se suman ambos módulos.</p>
+<div class="grid">
+<div class="unit-wrap"><label for="qdTotal">Suma de las 11 respuestas</label><input id="qdTotal" type="number" min="11" max="55" step="1" inputmode="numeric" placeholder="Ej. 33"><span class="unit">puntos</span></div>
+</div>
+<div class="formula">QuickDASH = [(suma de respuestas ÷ 11) − 1] × 25</div>
+<div class="results">
+<div class="result"><div class="k">Puntuación QuickDASH</div><div class="v" id="qdScore">—</div></div>
+<div class="result" id="qdClassCard"><div class="k">Limitación funcional</div><div class="v" id="qdClass">—</div></div>
+</div>
+<div id="qdMessage" aria-live="polite"></div>
+<div class="formula">Módulo de trabajo = [(suma de respuestas 12–15 ÷ 4) − 1] × 25</div>
+<div class="grid"><div class="unit-wrap"><label for="qdWorkTotal">Suma de las 4 respuestas de trabajo (12–15)</label><input id="qdWorkTotal" type="number" min="4" max="20" step="1" inputmode="numeric" placeholder="Ej. 12"><span class="unit">puntos</span></div></div>
+<div class="results">
+<div class="result"><div class="k">Puntuación módulo de trabajo</div><div class="v" id="qdWorkScore">—</div></div>
+<div class="result" id="qdWorkClassCard"><div class="k">Limitación funcional · trabajo</div><div class="v" id="qdWorkClass">—</div></div>
+</div>
+<div id="qdWorkMessage" aria-live="polite"></div>
+<p class="note">Ambos módulos generan resultados independientes de 0 a 100; un valor mayor representa mayor limitación. Categorías del material proporcionado (no son puntos de corte oficiales): &lt;25% baja; 25–50% moderada; &gt;50–75% alta; &gt;75% muy alta. El valor 50% se asigna a moderada y 75% a alta. Esta calculadora de sumas presupone todas las respuestas contestadas: 11 para el principal y 4 para trabajo.</p>
 </div>
 </section>
 
@@ -786,6 +812,69 @@ footer{max-width:1050px;margin:auto;padding:0 16px 35px;color:var(--muted);font-
   document.addEventListener("visibilitychange",function(){if(!document.hidden&&running){wakeOn();tick();}});
   var clear=el("reset");if(clear)clear.addEventListener("click",function(){calc();},false);
   display();calc();
+}());
+</script>
+
+
+<script>
+(function () {
+  "use strict";
+  var input=document.getElementById("qdTotal");
+  var score=document.getElementById("qdScore");
+  var label=document.getElementById("qdClass");
+  var card=document.getElementById("qdClassCard");
+  var message=document.getElementById("qdMessage");
+  function update() {
+    var raw=input.value.trim();
+    score.textContent="—";label.textContent="—";
+    card.classList.remove("altered","attention","positive");
+    message.textContent="";
+    if(raw==="")return;
+    var total=Number(raw);
+    if(!Number.isInteger(total)||total<11||total>55){
+      message.textContent="Ingresa una suma entera entre 11 y 55, correspondiente a las 11 preguntas principales.";
+      return;
+    }
+    var value=(total/11-1)*25;
+    score.textContent=value.toFixed(1).replace(".",",")+"%";
+    var category=value<25?"Baja":value<=50?"Moderada":value<=75?"Alta":"Muy alta";
+    label.textContent=category;
+    if(value>50)card.classList.add("altered");
+    else if(value>=25)card.classList.add("attention");
+    else card.classList.add("positive");
+    message.textContent="Puntuación: "+score.textContent+" · Limitación funcional "+category.toLowerCase()+".";
+  }
+  var workInput=document.getElementById("qdWorkTotal");
+  var workScore=document.getElementById("qdWorkScore");
+  var workLabel=document.getElementById("qdWorkClass");
+  var workCard=document.getElementById("qdWorkClassCard");
+  var workMessage=document.getElementById("qdWorkMessage");
+  function updateWork(){
+    var raw=workInput.value.trim();
+    workScore.textContent="—";workLabel.textContent="—";
+    workCard.classList.remove("altered","attention","positive");
+    workMessage.textContent="";
+    if(raw==="")return;
+    var total=Number(raw);
+    if(!Number.isInteger(total)||total<4||total>20){
+      workMessage.textContent="Ingresa una suma entera entre 4 y 20, correspondiente a las 4 preguntas de trabajo.";
+      return;
+    }
+    var value=(total/4-1)*25;
+    var category=value<25?"Baja":value<=50?"Moderada":value<=75?"Alta":"Muy alta";
+    workScore.textContent=value.toFixed(1).replace(".",",")+"%";
+    workLabel.textContent=category;
+    if(value>50)workCard.classList.add("altered");
+    else if(value>=25)workCard.classList.add("attention");
+    else workCard.classList.add("positive");
+    workMessage.textContent="Módulo de trabajo: "+workScore.textContent+" · Limitación funcional "+category.toLowerCase()+".";
+  }
+  input.addEventListener("input",update);
+  input.addEventListener("change",update);
+  workInput.addEventListener("input",updateWork);
+  workInput.addEventListener("change",updateWork);
+  document.getElementById("reset").addEventListener("click",function(){update();updateWork();});
+  update();updateWork();
 }());
 </script>
 
